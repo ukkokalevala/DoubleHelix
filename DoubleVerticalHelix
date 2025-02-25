@@ -1,0 +1,48 @@
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+#include "SimplexNoise.h"
+
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define OLED_RESET    -1
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+#define SOUND_SENSOR_PIN 2  // Sound sensor connected to GPIO 2
+
+SimplexNoise noise;
+float timeOffset = 0.0;
+
+void setup() {
+    Wire.begin(7, 6); // SDA = 7, SCL = 6
+    pinMode(SOUND_SENSOR_PIN, INPUT);
+
+    if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+        Serial.println(F("SSD1306 allocation failed"));
+        for (;;);
+    }
+    display.clearDisplay();
+    Serial.begin(115200);
+}
+
+void loop() {
+    display.clearDisplay();
+    
+    int soundLevel = analogRead(SOUND_SENSOR_PIN);
+    int amplitude = map(soundLevel, 0, 4095, 10, 25); // Helix wave size
+
+    float speed = millis() * 0.002; // Controls wave movement
+
+    for (int y = 0; y < SCREEN_HEIGHT; y += 2) {
+        float noiseOffset = noise.noise(y * 0.05, speed) * 5; // Organic movement
+
+        int x1 = 64 + amplitude * sin(y * 0.1 + speed) + noiseOffset;  // First helix strand
+        int x2 = 64 + amplitude * sin(y * 0.1 + speed + PI) - noiseOffset; // Second strand
+
+        display.drawPixel(x1, y, SSD1306_WHITE);
+        display.drawPixel(x2, y, SSD1306_WHITE);
+    }
+
+    display.display();
+    delay(50);
+}
