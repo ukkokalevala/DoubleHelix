@@ -2,13 +2,14 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include "SimplexNoise.h"
+#include <math.h>
 
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
 #define OLED_RESET    -1
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
-#define SOUND_SENSOR_PIN 2  // Sound sensor connected to GPIO 2
+#define SOUND_SENSOR_PIN 2  // Sound sensor on GPIO 2
 
 SimplexNoise noise;
 float timeOffset = 0.0;
@@ -29,15 +30,26 @@ void loop() {
     display.clearDisplay();
     
     int soundLevel = analogRead(SOUND_SENSOR_PIN);
-    int amplitude = map(soundLevel, 0, 4095, 10, 25); // Helix wave size
+    int amplitude = map(soundLevel, 0, 4095, 10, 30); // Wave size affected by sound
 
-    float speed = millis() * 0.002; // Controls wave movement
+    float speed = millis() * 0.002; // Time-based movement
 
-    for (int y = 0; y < SCREEN_HEIGHT; y += 2) {
-        float noiseOffset = noise.noise(y * 0.05, speed) * 5; // Organic movement
+    for (int i = 0; i < SCREEN_HEIGHT; i += 2) {
+        float angle = i * 0.1 + speed;  // Rotating DNA effect
 
-        int x1 = 64 + amplitude * sin(y * 0.1 + speed) + noiseOffset;  // First helix strand
-        int x2 = 64 + amplitude * sin(y * 0.1 + speed + PI) - noiseOffset; // Second strand
+        float depth = (sin(angle) + 1) * 10 + 5; // Simulated depth
+
+        float scale = 15 / (depth + 10); // Perspective scaling
+
+        // Fake 3D movement using time as third parameter
+        float noiseOffset1 = noise.noise(i * 0.05, speed) * 5;
+        float noiseOffset2 = noise.noise(i * 0.07, speed + 0.5) * 5;
+
+        int x1 = 64 + scale * amplitude * cos(angle) + noiseOffset1; // First strand
+        int x2 = 64 + scale * amplitude * cos(angle + PI) + noiseOffset2; // Second strand
+        int y = i;
+
+        int brightness = map(depth, 0, 20, 10, 255); // Closer = brighter
 
         display.drawPixel(x1, y, SSD1306_WHITE);
         display.drawPixel(x2, y, SSD1306_WHITE);
